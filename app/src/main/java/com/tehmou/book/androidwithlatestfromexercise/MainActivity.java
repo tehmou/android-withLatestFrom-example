@@ -1,6 +1,7 @@
 package com.tehmou.book.androidwithlatestfromexercise;
 
 import android.os.Bundle;
+import android.support.v4.util.Pair;
 import android.support.v7.app.AlertDialog;
 import android.support.v7.app.AppCompatActivity;
 import android.widget.TextView;
@@ -30,18 +31,25 @@ public class MainActivity extends AppCompatActivity {
 
         final Observable<Object> clickEvents =
                 RxView.clicks(findViewById(R.id.action_button));
-        
+
+        // Create an ad-hoc structure that contains all information needed for the dialog. This
+        // *could* be a custom data structure, but we can get away with a Pair in this simple case.
+        final Observable<Pair<String, String>> dialogInformationObservable =
+                Observable.combineLatest(titleObservable, messageObservable, Pair::new);
+
         // Convert the Void clicks into the necessary information to show the dialog
-        final Observable<String> showDialogEventObservable =
-                clickEvents.withLatestFrom(titleObservable, (ignore, title) -> title);
+        final Observable<Pair<String, String>> showDialogEventObservable =
+                clickEvents.withLatestFrom(dialogInformationObservable,
+                        (ignore, dialogInformation) -> dialogInformation);
 
         // Subscribe to the event Observable that sends us the necessary information to show the
         // dialog at the time when it should be shown.
         showDialogEventObservable
                 .observeOn(AndroidSchedulers.mainThread())
-                .subscribe(title ->
+                .subscribe(dialogInformation ->
                         new AlertDialog.Builder(this)
-                                .setTitle(title)
+                                .setTitle(dialogInformation.first)
+                                .setMessage(dialogInformation.second)
                                 .show());
     }
 }
